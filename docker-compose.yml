@@ -1,0 +1,11 @@
+services:
+  tg-relay:
+    build: .
+    image: tg-relay-console:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"          # http://SERVER_IP:3000 — змініть ліву частину, якщо порт зайнятий
+    volumes:
+      - ./data:/app/data     # історія повідомлень і конфігурація переживають перезапуск
+    environment:
+      - PORT=3000

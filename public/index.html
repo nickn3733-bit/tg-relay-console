@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="uk" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Telegram Relay Console</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%232AABEE'/%3E%3Cpath d='M24 48l46-18c3-1 5 1 4 3l-8 38c-1 3-3 4-5 2l-12-9-6 6c-1 1-3 1-3-1l-2-11z' fill='white'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+  <!-- ═════════ Экран входа (Password Gate) ═════════ -->
+  <div id="view-gate" class="gate hidden">
+    <div class="gate-card card">
+      <div class="gate-logo">
+        <svg viewBox="0 0 100 100" width="56" height="56"><circle cx="50" cy="50" r="46" fill="url(#lg)"/><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2AABEE"/><stop offset="1" stop-color="#229ED9"/></linearGradient></defs><path d="M24 48l46-18c3-1 5 1 4 3l-8 38c-1 3-3 4-5 2l-12-9-6 6c-1 1-3 1-3-1l-2-11z" fill="#fff"/></svg>
+      </div>
+      <h1 id="gate-title">Telegram Relay Console</h1>
+      <p class="gate-sub" id="gate-sub">Уведіть майстер-пароль, щоб відкрити веб-чат вашої Telegram-групи</p>
+      <form id="gate-form" autocomplete="off">
+        <input id="gate-password" type="password" class="input" placeholder="Майстер-пароль" autofocus />
+        <button type="submit" class="btn btn-primary btn-block" id="gate-submit">Увійти</button>
+      </form>
+      <div id="gate-error" class="form-error hidden"></div>
+      <p class="gate-hint">Сервер захищий від підбору пароля: після кількох невдалих спроб вхід тимчасово блокується.</p>
+    </div>
+  </div>
+
+  <!-- ═════════ Головний екран чату ═════════ -->
+  <div id="view-main" class="app hidden">
+
+    <header class="topbar">
+      <div class="topbar-brand">
+        <span class="status-dot" id="status-dot"></span>
+        <div class="topbar-ident">
+          <strong id="bot-name">Bot не налаштований</strong>
+          <span id="group-name" class="muted">Група не обрана</span>
+        </div>
+      </div>
+      <div class="topbar-stats mono" id="stat-messages">0 повідомлень</div>
+      <nav class="topbar-actions">
+        <button class="btn btn-ghost" id="btn-deploy" title="Як розгорнути на сервері">Розгортання</button>
+        <button class="btn btn-ghost" id="btn-settings" title="Налаштування підключення">⚙ Налаштування</button>
+        <button class="btn btn-ghost" id="btn-theme" title="Світла/темна тема">◐</button>
+        <button class="btn btn-ghost btn-danger" id="btn-logout" title="Вийти">Вийти</button>
+      </nav>
+    </header>
+
+    <main class="stream" id="stream">
+      <div id="messages" class="messages"></div>
+      <div id="stream-empty" class="stream-empty hidden">
+        <p><strong>Немає повідомлень.</strong></p>
+        <p class="muted">Накресліть будь-що в Telegram-групі, де доданий ваш бот — і повідомлення з'являться тут автоматично.</p>
+      </div>
+    </main>
+
+    <footer class="composer">
+      <form id="send-form" class="composer-form">
+        <textarea id="send-input" rows="1" placeholder="Напишіть повідомлення від імені бота…" autocomplete="off" disabled></textarea>
+        <button class="btn btn-primary send-btn" id="send-btn" type="submit" disabled title="Надіслати (Enter)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.993.993 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/></svg>
+        </button>
+      </form>
+      <div class="composer-hint mono">Enter — надіслати · Shift+Enter — новий рядок</div>
+    </footer>
+  </div>
+
+  <!-- ═════════ Модальне вікно: Налаштування ═════════ -->
+  <dialog id="dlg-settings" class="modal">
+    <div class="modal-head">
+      <h2>⚙ Налаштування підключення</h2>
+      <button class="btn btn-ghost modal-close" data-close="dlg-settings">✕</button>
+    </div>
+
+    <section class="modal-section">
+      <label class="field-label" for="cfg-token">Bot Token <span class="muted">(отримайте в @BotFather)</span></label>
+      <div class="field-row">
+        <input id="cfg-token" type="password" class="input mono" placeholder="123456789:AAE..." />
+        <button class="btn" id="btn-check-bot" type="button">Перевірити бота</button>
+      </div>
+      <div id="bot-check-result" class="check-result hidden"></div>
+    </section>
+
+    <section class="modal-section">
+      <label class="field-label" for="cfg-chat">Chat ID групи</label>
+      <div class="field-row">
+        <input id="cfg-chat" class="input mono" placeholder="наприклад: -1001234567890" />
+        <button class="btn" id="btn-detect" type="button">Виявити групу</button>
+      </div>
+      <div id="detect-result" class="check-result hidden"></div>
+      <p class="field-hint">Напишіть будь-що в цільову групу та натисніть «Виявити групу» — сервер знайде Chat ID автоматично.</p>
+      <button class="btn btn-primary" id="btn-save-config" type="button">Зберегти підключення</button>
+    </section>
+
+    <section class="modal-section modal-section-divider">
+      <h3>Зміна майстер-пароля</h3>
+      <div class="field-col">
+        <input id="pw-current" type="password" class="input" placeholder="Поточний пароль" autocomplete="off" />
+        <input id="pw-next" type="password" class="input" placeholder="Новий пароль (мін. 6 символів)" autocomplete="off" />
+        <button class="btn" id="btn-change-password" type="button">Змінити пароль</button>
+      </div>
+    </section>
+
+    <div id="settings-msg" class="form-error hidden"></div>
+  </dialog>
+
+  <!-- ═════════ Модальне вікно: Розгортання на сервері ═════════ -->
+  <dialog id="dlg-deploy" class="modal modal-wide">
+    <div class="modal-head">
+      <h2>🚀 Розгортання на сервері (VPS / домашній ПК)</h2>
+      <button class="btn btn-ghost modal-close" data-close="dlg-deploy">✕</button>
+    </div>
+
+    <section class="modal-section">
+      <h3>Варіант 1 — Docker Compose (найпростіше)</h3>
+      <pre class="term"><code>git clone &lt;ваш-репозиторій&gt; tg-relay-console
+cd tg-relay-console
+docker compose up -d
+docker compose logs -f</code></pre>
+      <p class="field-hint">Займає порт <code class="mono">3000</code> (змініть в <code class="mono">docker-compose.yml</code>, якщо він зайнятий).</p>
+    </section>
+
+    <section class="modal-section">
+      <h3>Варіант 2 — systemd (звичайний запуск на Ubuntu/Debian)</h3>
+      <pre class="term"><code># 1. Встановіть Node.js 20 LTS
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# 2. Скопіюйте проєкт на сервер, наприклад у /opt
+sudo mv tg-relay-console /opt/
+cd /opt/tg-relay-console
+npm install --omit=dev
+
+# 3. Автозапуск сервісу
+sudo cp deploy/tg-relay.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now tg-relay
+sudo journalctl -u tg-relay -f</code></pre>
+    </section>
+
+    <section class="modal-section">
+      <h3>Відкриваємо порт для інтернету</h3>
+      <pre class="term"><code># ufw (Ubuntu firewall)
+sudo ufw allow 3000/tcp
+
+# На VPS — переконайтесь, що порт відкритий у панелі хостера (Security Group).
+# На домашньому ПК — прокиньте порт 3000 на роутері (Port Forwarding) на адресу ПК.</code></pre>
+      <p class="field-hint">Адреса доступу: <code class="mono">http://ВАШ_SERVER_IP:3000</code></p>
+    </section>
+
+    <section class="modal-section">
+      <h3>Бонус: безкоштовний HTTPS (рекомендовано)</h3>
+      <pre class="term"><code># Виставлений домен + Caddy:
+sudo apt-get install -y caddy  # або завантажте з caddyserver.com
+echo 'tg.example.com {
+    reverse_proxy localhost:3000
+}' | sudo tee /etc/caddy/Caddyfile
+sudo systemctl reload caddy</code></pre>
+      <p class="field-hint">Caddy сам отримає сертифікат Let's Encrypt. Потім заходьте за <code class="mono">https://tg.example.com</code>.</p>
+    </section>
+  </dialog>
+
+  <div id="toast-host"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

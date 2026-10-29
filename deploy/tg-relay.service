@@ -1,0 +1,22 @@
+[Unit]
+Description=Telegram Relay Web Console
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Шлях до проєкту — за потреби змініть
+WorkingDirectory=/opt/tg-relay-console
+ExecStart=/usr/bin/node /opt/tg-relay-console/server.js
+Restart=always
+RestartSec=5
+Environment=PORT=3000
+Environment=NODE_ENV=production
+
+# Базова безпека
+User=nick
+Group=nick
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
